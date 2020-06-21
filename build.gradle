@@ -1,120 +1,146 @@
 buildscript {
     repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
-        maven { url = "http://files.minecraftforge.net/maven" }
+        mavenCentral()
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
     }
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
-// 只需要编辑下面的东西即可，上部的代码是 Forge 设置所添加并必须的。
+apply plugin: 'net.minecraftforge.gradle'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 
-// 模组的基本信息，包括版本，包名等
-// 参考 http://maven.apache.org/guides/mini/guide-naming-conventions.html 了解命名规则
-version = mod_version
+version = 1.0
 group = "com.github.tartaricacid"
 archivesBaseName = "touhoulittlemaid"
 
-// 此处需要它，以便 eclipse 任务能够正确生成。
-sourceCompatibility = targetCompatibility = '1.8'
-compileJava {
-    sourceCompatibility = targetCompatibility = '1.8'
-}
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-    // 所使用的 Forge 版本
-    version = "1.12.2-${forge_version}"
-    // 游戏试运行时的文件夹
-    runDir = "run"
-    // MCP 的版本，修改后只需要重新构建开发环境即可
-    mappings = mcp_mappings
-    // 将代码中的所有 @VERSION@ 字段替换为 version 变量
-    replace "@VERSION@", project.version
-}
+    // The mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   Snapshot are built nightly.
+    // stable_#            Stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: 'snapshot', version: '20200514-1.15.1'
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-// 添加仓库
-repositories {
-    maven {
-        // JEI
-        name = "Progwml6 Maven"
-        url = "https://dvs1.progwml6.com/files/maven/"
-    }
-    maven {
-        // HWYLA
-        name = "Tehnut Maven"
-        url = "http://tehnut.info/maven"
-    }
-    maven {
-        // The One Probe
-        name = 'tterrag maven'
-        url = "http://maven.tterrag.com/"
-    }
-    maven {
-        name = "MCMultiPart2 Maven"
-        url = "http://maven.amadornes.com/"
-    }
-    maven {
-        // Patchouli
-        name = 'Blamejared Maven'
-        url = 'https://maven.blamejared.com'
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            args '--mod', 'examplemod', '--all', '--output', file('src/generated/resources/')
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
     }
 }
 
 dependencies {
-    //  JEI
-    deobfCompile "mezz.jei:jei_1.12.2:${jei_version}"
-    // HWYLA
-    deobfCompile "mcp.mobius.waila:Hwyla:${hwyla_version}"
-    // The One Probe
-    deobfCompile("mcjty.theoneprobe:TheOneProbe-1.12:${top_version}") {
-        exclude group: 'cofh'
-    }
-    deobfCompile "MCMultiPart2:MCMultiPart:${mcmp_version}"
-    compile "vazkii.patchouli:Patchouli:${patchouli_version}"
+    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
+    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
+    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
+    minecraft 'net.minecraftforge:forge:1.15.2-31.2.0'
 
-    // 想要了解更多，可以查询如下网址
+    // You may put jars on which you depend on in ./libs or you may define them like so..
+    // compile "some.group:artifact:version:classifier"
+    // compile "some.group:artifact:version"
+
+    // Real examples
+    // compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    // compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // These dependencies get remapped to your current MCP mappings
+    // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // For more info...
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
 }
 
-// 处理资源部分
-processResources {
-    // 在版本更改时，这将确保任务会进行重置
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // 将资源部部分的 mcmod.info 文件的 ${version} 和 ${mcversion} 替换为如下两个变量
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version': project.version, 'mcversion': project.minecraft.version
-    }
-
-    // 复制除 mcmod.info 之外的所有其他内容
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
-}
-
-// 强制将编译环境的编码设置为 UTF-8 编码
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-
-// 打包部分
+// Example for how to get properties into the manifest for reading by the runtime..
 jar {
-    // 打包的包名
-    if (System.getenv().BUILD_NUMBER != null) {
-        // 在 Jenkins 上，打包名为 touhoulittlemaid-1.12.2-jenkins-build-3.jar 这样的
-        archiveName = archivesBaseName + "-1.12.2-jenkins-build-${System.getenv().BUILD_NUMBER}.jar"
-    } else {
-        // 默认环境为 touhoulittlemaid-1.12.2-1.1.4-alpha.jar 这样的
-        archiveName = archivesBaseName + "-1.12.2-${mod_version}-beta.jar"
-    }
     manifest {
-        // 打包 Access Transformers 文件
-        attributes 'FMLAT': 'touhou_little_maid_at.cfg'
-        // 将 CodecJLayerMP3 库打包进行模组中
-        attributes 'ContainedDeps': "codecjlayermp3-1.0.0-SNAPSHOT.jar jlayer-1.0.1.jar"
+        attributes([
+            "Specification-Title": "examplemod",
+            "Specification-Vendor": "examplemodsareus",
+            "Specification-Version": "1", // We are version 1 of ourselves
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"examplemodsareus",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+// Example configuration to allow publishing using the maven-publish task
+// This is the preferred method to reobfuscate your jar file
+jar.finalizedBy('reobfJar') 
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
+//publish.dependsOn('reobfJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
     }
 }
